@@ -1,0 +1,16 @@
+{
+  "compileOnSave": true,
+  "compilerOptions": {
+    "allowJs": true,
+    "experimentalDecorators": true,
+    "noImplicitAny": true,
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "pretty": true,
+    "target": "es6",
+    "outDir": "./dist",
+    "baseUrl": "./lib"
+  },
+  "include": ["lib/**/*.ts"],
+  "exclude": ["build", "node_modules"]
+}
