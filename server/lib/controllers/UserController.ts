@@ -3,6 +3,8 @@ import * as express from "express";
 import Controller from "../interfaces/controller.interface";
 import userModel from "../entity/userModel";
 import User from "../interfaces/user.interface";
+import { checkJwt } from "../middlewares/checkJwt";
+import { checkRole } from "../middlewares/checkRole";
 
 class UserController implements Controller {
   public path = "/users";
@@ -12,11 +14,27 @@ class UserController implements Controller {
     this.initializeRoutes();
   }
   private initializeRoutes() {
-    this.router.get(this.path, this.getAll);
-    this.router.post(this.path, this.createUser);
-    this.router.get(`${this.path}/:id`, this.getuserById);
-    this.router.patch(`${this.path}/:id`, this.modifyUser);
-    this.router.delete(`${this.path}/:id`, this.deleteUser);
+    this.router.get(this.path, [checkJwt, checkRole(["admin"])], this.getAll);
+    this.router.post(
+      this.path,
+      [checkJwt, checkRole(["admin"])],
+      this.createUser
+    );
+    this.router.get(
+      `${this.path}/:id`,
+      [checkJwt, checkRole(["admin"])],
+      this.getuserById
+    );
+    this.router.patch(
+      `${this.path}/:id`,
+      [checkJwt, checkRole(["admin"])],
+      this.modifyUser
+    );
+    this.router.delete(
+      `${this.path}/:id`,
+      [checkJwt, checkRole(["admin"])],
+      this.deleteUser
+    );
   }
 
   private getAll = (request: express.Request, response: express.Response) => {
@@ -29,8 +47,8 @@ class UserController implements Controller {
     response: express.Response
   ) => {
     const id = request.params.id;
-    this.users.findById(id).then((post) => {
-      response.send(post);
+    this.users.findById(id).then((user) => {
+      response.send(user);
     });
   };
   private createUser = async (
@@ -39,12 +57,27 @@ class UserController implements Controller {
   ) => {
     const userData: User = request.body;
     const hashedPassword = await bcrypt.hash(userData.password, 10);
-    const createUser = new this.users({
-      ...userData,
-      password: hashedPassword,
+
+    const isExist = this.users.findOne({
+      email: request.body.email,
     });
-    const savedPost = await createUser.save();
-    response.send(savedPost);
+    if (isExist) {
+      response
+        .status(400)
+        .send({ message: "Failed! Email is already in use!" });
+      return;
+    } else {
+      const createUser = new this.users({
+        ...userData,
+        password: hashedPassword,
+      });
+      const savedUser = await createUser.save();
+      response.send({
+        status: 200,
+        message: "Record saved successfully.",
+        savedUser,
+      });
+    }
     // const createdUser = new this.users(userData);
     // createdUser.save().then((savedUser) => {
     //   response.send(savedUser);
@@ -55,8 +88,8 @@ class UserController implements Controller {
     response: express.Response
   ) => {
     const id = request.params.id;
-    const postData: User = request.body;
-    this.users.findByIdAndUpdate(id, postData, { new: true }).then((user) => {
+    const savedUser: User = request.body;
+    this.users.findByIdAndUpdate(id, savedUser, { new: true }).then((user) => {
       response.send(user);
     });
   };

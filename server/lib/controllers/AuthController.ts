@@ -25,7 +25,6 @@ class AuthController implements Controller {
     next: express.NextFunction
   ) => {
     const userData: User = request.body;
-    console.log(userData);
     if (await this.user.findOne({ email: userData.email })) {
       next(
         response.send({
@@ -40,12 +39,9 @@ class AuthController implements Controller {
         password: hashedPassword,
       });
       user.password = undefined;
-      const tokenData = this.createToken(user);
-      response.setHeader("Set-Cookie", [this.createCookie(tokenData)]);
       response.send({
         code: 200,
         msg: "success",
-        token: tokenData,
       });
     }
   };
@@ -65,7 +61,11 @@ class AuthController implements Controller {
         user.password = undefined;
         const tokenData = this.createToken(user);
         response.setHeader("Set-Cookie", [this.createCookie(tokenData)]);
-        response.send(user);
+        response.send({
+          code: 200,
+          msg: "success",
+          token: tokenData,
+        });
       } else {
         next(response.send("Exception occure."));
       }
@@ -88,6 +88,8 @@ class AuthController implements Controller {
     const secret = process.env.JWT_SECRET;
     const dataStoredInToken: DataStoredInToken = {
       _id: user.id,
+      // userName: user.fname + user.lname,
+      // userRole: user.role,
     };
     return {
       expiresIn,
